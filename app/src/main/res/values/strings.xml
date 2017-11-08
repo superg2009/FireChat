@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">FireChat</string>
+    <string name="title_activity_hub">HubActivity</string>
 </resources>
