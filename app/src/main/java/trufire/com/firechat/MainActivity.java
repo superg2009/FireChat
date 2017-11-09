@@ -21,14 +21,22 @@ public class MainActivity extends AppCompatActivity{
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-         mAuth=FirebaseAuth.getInstance();
-         if(mAuth.getCurrentUser()!=null){
-                startActivity(new Intent(MainActivity.this,HubActivity.class));
-         }else {
-             //not signed in
-             startActivityForResult(AuthUI.getInstance().createSignInIntentBuilder().setIsSmartLockEnabled(!BuildConfig.DEBUG).build(),RC_SIGN_IN);
-         }
+
     }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        //get instance
+        mAuth=FirebaseAuth.getInstance();
+        if(mAuth.getCurrentUser()!=null){
+            startActivity(new Intent(MainActivity.this,HubActivity.class));
+        }else {
+            //not signed in
+            startActivityForResult(AuthUI.getInstance().createSignInIntentBuilder().setIsSmartLockEnabled(!BuildConfig.DEBUG).build(),RC_SIGN_IN);
+        }
+    }
+
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         // RC_SIGN_IN is the request code you passed into startActivityForResult(...) when starting the sign in flow.
