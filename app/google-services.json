@@ -8,17 +8,17 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:232592810413:android:c3daabc00e13ef49",
+        "mobilesdk_app_id": "1:232592810413:android:48a364fb597d4eac",
         "android_client_info": {
-          "package_name": "trufire.com.firechat"
+          "package_name": "com.tru.firechat"
         }
       },
       "oauth_client": [
         {
-          "client_id": "232592810413-fccav7q3f89fos67t0vo9r7ka321gb0i.apps.googleusercontent.com",
+          "client_id": "232592810413-ucugjfe9eephtvhknjblptqkdlua2m6v.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "trufire.com.firechat",
+            "package_name": "com.tru.firechat",
             "certificate_hash": "99be8d4404303a40539156592171f0ad4494040b"
           }
         },
