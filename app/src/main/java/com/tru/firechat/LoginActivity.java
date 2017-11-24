@@ -49,7 +49,7 @@ public class LoginActivity extends AppCompatActivity implements GoogleApiClient.
     public void onCreate(@Nullable Bundle savedInstanceState ) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.login_activity);
-
+        setTitle("Login Screen");
         // Assign fields
         mSignInButton = (SignInButton) findViewById(R.id.signinbutton);
         // Initialize FirebaseAuth

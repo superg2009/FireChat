@@ -3,9 +3,11 @@ package com.tru.firechat;
 import android.content.Intent;
 import android.net.Uri;
 import android.support.annotation.NonNull;
+import android.support.constraint.ConstraintLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -37,6 +39,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
 import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
@@ -47,11 +50,8 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     protected static String mUsername;
     protected static String mPhotoUrl;
     private static final String TAG = "MainActivity";
-    private static final int REQUEST_INVITE = 1;
     private static final int REQUEST_IMAGE = 2;
-    private static final String MESSAGE_SENT_EVENT = "message_sent";
     private static final String LOADING_IMAGE_URL = "https://www.google.com/images/spin-32.gif";
-    private static final String FIREBASE_URL="https://projecttrufire.firebaseio.com";
     private FirebaseRecyclerAdapter<Message, MessageViewHolder> mFirebaseAdapter;
     //firebase variables
     private FirebaseAuth mFirebaseAuth;
@@ -64,7 +64,6 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     private EditText messageBox;
     private ImageView sendphoto;
     private  ImageButton sendmessage;
-
     //
     public static class MessageViewHolder extends RecyclerView.ViewHolder {
         TextView messageTextView;
@@ -106,6 +105,10 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                     .build();
         }
         recyclerView = (RecyclerView)(findViewById(R.id.messagesRecyclerView));
+        LinearLayoutManager l = new LinearLayoutManager(this);
+        l.setStackFromEnd(true);
+        recyclerView.setLayoutManager(l);
+
 
         this.setTitle("Messages");
 
@@ -121,10 +124,11 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         };
 
         final DatabaseReference reference= FirebaseDatabase.getInstance().getReference("messages");
+        final Query ref = FirebaseDatabase.getInstance().getReference().child("messages").limitToLast(20);
 
         FirebaseRecyclerOptions<Message> options =
                 new FirebaseRecyclerOptions.Builder<Message>()
-                        .setQuery(reference, parser)
+                        .setQuery(ref, parser)
                         .build();
         mFirebaseAdapter= new FirebaseRecyclerAdapter<Message, MessageViewHolder>(options) {
             @Override
@@ -133,6 +137,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                         holder.messageTextView.setText(model.getText());
                         holder.messageTextView.setVisibility(TextView.VISIBLE);
                         holder.attachment.setVisibility(ImageView.GONE);
+                       // holder.messenger.setVisibility(ImageView.GONE);
                     }else {
                         String imageurl=model.getImageUrl();
                         if(imageurl.startsWith("gs://")){
@@ -145,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                                         String downloadurl = task.getResult().toString();
                                         Glide.with(holder.attachment.getContext()).load(downloadurl)
                                                 .into(holder.attachment);
+
                                     }else Log.w(TAG,"getting image failed");
                                 }
                             });
@@ -164,6 +170,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                         Glide.with(MainActivity.this)
                                 .load(model.getPhotoUrl()).into(holder.messenger);
                     }
+
             }
 
             @Override
@@ -180,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
 
             }
         });
-            recyclerView.setAdapter(mFirebaseAdapter);
+
             messageBox= (EditText) findViewById(R.id.message);
             messageBox.addTextChangedListener(new TextWatcher() {
                 @Override
@@ -223,6 +230,8 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                messageBox.setText("");
             }
         });
+        recyclerView.setAdapter(mFirebaseAdapter);
+
     }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -257,14 +266,16 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         super.onStop();
         if(mGoogleApiClient.isConnected())
         mGoogleApiClient.disconnect();
-
+        mFirebaseAdapter.stopListening();
     }
 
     @Override
     protected void onStart() {
         super.onStart();
          mGoogleApiClient.connect();
+         mFirebaseAdapter.startListening();
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -308,11 +319,11 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                     public void onComplete(@NonNull Task<UploadTask.TaskSnapshot> task) {
                         DatabaseReference reference1= FirebaseDatabase.getInstance().getReference();
                         if (task.isSuccessful()) {
-                            Message friendlyMessage =
+                            Message Message =
                                     new Message(null, mUsername,task.getResult().getDownloadUrl()
                                             .toString(),mPhotoUrl);
                             reference1.child("messages").child(key)
-                                    .setValue(friendlyMessage);
+                                    .setValue(Message);
                         } else {
                             Log.w(TAG, "Image upload task was not successful.",
                                     task.getException());
