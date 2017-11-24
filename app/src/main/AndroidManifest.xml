@@ -26,7 +26,7 @@
         <activity
             android:name=".LoginActivity"
             android:theme="@style/firechatdefault" />
-
+        <activity android:name=".PictureExpandedActivity"></activity>
     </application>
 
 </manifest>

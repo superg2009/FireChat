@@ -1,6 +1,7 @@
 package com.tru.firechat;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.constraint.ConstraintLayout;
@@ -22,6 +23,7 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.bumptech.glide.Glide;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
@@ -111,6 +113,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
 
 
         this.setTitle("Messages");
+        Toast.makeText(getApplicationContext(),"welcome"+mUsername,Toast.LENGTH_SHORT).show();
 
         SnapshotParser<Message> parser = new SnapshotParser<Message>() {
             @Override
@@ -132,7 +135,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                         .build();
         mFirebaseAdapter= new FirebaseRecyclerAdapter<Message, MessageViewHolder>(options) {
             @Override
-            protected void onBindViewHolder(final MessageViewHolder holder, int position, Message model) {
+            protected void onBindViewHolder(final MessageViewHolder holder, int position, final Message model) {
                     if(model.getText()!=null){
                         holder.messageTextView.setText(model.getText());
                         holder.messageTextView.setVisibility(TextView.VISIBLE);
@@ -170,7 +173,17 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                         Glide.with(MainActivity.this)
                                 .load(model.getPhotoUrl()).into(holder.messenger);
                     }
-
+                holder.attachment.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if(model.getImageUrl()!=null) {
+                            Intent intent = new Intent(getBaseContext(), PictureExpandedActivity.class);
+                            String imgpath = model.getImageUrl();
+                            intent.putExtra("image path", imgpath);
+                            startActivity(intent);
+                        }
+                    }
+                });
             }
 
             @Override
@@ -225,7 +238,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             @Override
             public void onClick(View v) {
                Message message = new Message(messageBox.getText().toString(),
-                       mUsername,mPhotoUrl,null);
+                       mUsername,null,mPhotoUrl);
                reference.push().setValue(message);
                messageBox.setText("");
             }
