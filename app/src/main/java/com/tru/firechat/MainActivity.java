@@ -1,13 +1,11 @@
 package com.tru.firechat;
 
 import android.content.Intent;
-import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
-import android.os.Bundle;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.text.Editable;
@@ -34,7 +32,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
-import com.google.firebase.analytics.FirebaseAnalytics;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DataSnapshot;
@@ -46,41 +43,25 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
 
-import de.hdodenhof.circleimageview.CircleImageView;
-
 public class MainActivity extends AppCompatActivity implements  GoogleApiClient.OnConnectionFailedListener{
-    protected static String mUsername;
-    protected static String mPhotoUrl;
     private static final String TAG = "MainActivity";
     private static final int REQUEST_IMAGE = 2;
     private static final String LOADING_IMAGE_URL = "https://www.google.com/images/spin-32.gif";
+    protected static String Username;
+    protected static String profilePhotoUrl;
     private FirebaseRecyclerAdapter<Message, MessageViewHolder> mFirebaseAdapter;
     //firebase variables
-    private FirebaseAuth mFirebaseAuth;
-    private FirebaseUser mFirebaseUser;
+    private FirebaseAuth FirebaseAuth;
+    private FirebaseUser FirebaseUser;
     //google
-    private GoogleApiClient mGoogleApiClient;
+    private GoogleApiClient GoogleApiClient;
     //
     private RecyclerView recyclerView;
     //
     private EditText messageBox;
     private ImageView sendphoto;
-    private  ImageButton sendmessage;
-    //
-    public static class MessageViewHolder extends RecyclerView.ViewHolder {
-        TextView messageTextView;
-        TextView titleTextView;
-        ImageView attachment;
-        ImageView messenger;
+    private  ImageButton sendMessageButton;
 
-        public MessageViewHolder(View v) {
-            super(v);
-            messageTextView = (TextView) itemView.findViewById(R.id.messageTextView);
-            titleTextView = (TextView) itemView.findViewById(R.id.senderTextview);
-            attachment = (ImageView) itemView.findViewById(R.id.messageattachmentview);
-            messenger= (ImageView) itemView.findViewById(R.id.circularimageview);
-        }
-    }
     //
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -88,32 +69,33 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         setContentView(R.layout.activity_main);
 
         // Initialize Firebase Auth
-        mFirebaseAuth = FirebaseAuth.getInstance();
-        mFirebaseUser = mFirebaseAuth.getCurrentUser();
+        FirebaseAuth = com.google.firebase.auth.FirebaseAuth.getInstance();
+        FirebaseUser = FirebaseAuth.getCurrentUser();
 
-        if (mFirebaseUser == null) {
+        if (FirebaseUser == null) {
             // Not signed in, launch the Sign In activity
             startActivity(new Intent(this, LoginActivity.class));
             finish();
             return;
         } else {
-            mUsername = mFirebaseUser.getDisplayName();
-            if (mFirebaseUser.getPhotoUrl() != null) {
-                mPhotoUrl = mFirebaseUser.getPhotoUrl().toString();
+            Username = FirebaseUser.getDisplayName();
+            if (FirebaseUser.getPhotoUrl() != null) {
+                profilePhotoUrl = FirebaseUser.getPhotoUrl().toString();
             }
-            mGoogleApiClient = new GoogleApiClient.Builder(this)
+
+            GoogleApiClient = new GoogleApiClient.Builder(this)
                     .enableAutoManage(this /* FragmentActivity */, this /* OnConnectionFailedListener */)
                     .addApi(Auth.GOOGLE_SIGN_IN_API)
                     .build();
         }
-        recyclerView = (RecyclerView)(findViewById(R.id.messagesRecyclerView));
+
+        recyclerView = findViewById(R.id.messagesRecyclerView);
         LinearLayoutManager l = new LinearLayoutManager(this);
         l.setStackFromEnd(true);
         recyclerView.setLayoutManager(l);
 
-
         this.setTitle("Messages");
-        Toast.makeText(getApplicationContext(),"welcome"+mUsername,Toast.LENGTH_SHORT).show();
+        Toast.makeText(getApplicationContext(),"welcome "+ Username,Toast.LENGTH_SHORT).show();
 
         SnapshotParser<Message> parser = new SnapshotParser<Message>() {
             @Override
@@ -129,56 +111,69 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
         final DatabaseReference reference= FirebaseDatabase.getInstance().getReference("messages");
         final Query ref = FirebaseDatabase.getInstance().getReference().child("messages").limitToLast(20);
 
-        FirebaseRecyclerOptions<Message> options =
-                new FirebaseRecyclerOptions.Builder<Message>()
-                        .setQuery(ref, parser)
-                        .build();
+        FirebaseRecyclerOptions<Message> options = new FirebaseRecyclerOptions.Builder<Message>()
+                        .setQuery(ref, parser).build();
+
         mFirebaseAdapter= new FirebaseRecyclerAdapter<Message, MessageViewHolder>(options) {
             @Override
             protected void onBindViewHolder(final MessageViewHolder holder, int position, final Message model) {
-                    if(model.getText()!=null){
-                        holder.messageTextView.setText(model.getText());
-                        holder.messageTextView.setVisibility(TextView.VISIBLE);
-                        holder.attachment.setVisibility(ImageView.GONE);
-                       // holder.messenger.setVisibility(ImageView.GONE);
-                    }else {
-                        String imageurl=model.getImageUrl();
-                        if(imageurl.startsWith("gs://")){
-                            StorageReference storageReference= FirebaseStorage.getInstance()
-                                    .getReferenceFromUrl(imageurl);
-                            storageReference.getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
-                                @Override
-                                public void onComplete(@NonNull Task<Uri> task) {
-                                    if(task.isSuccessful()){
-                                        String downloadurl = task.getResult().toString();
-                                        Glide.with(holder.attachment.getContext()).load(downloadurl)
-                                                .into(holder.attachment);
+                if(model.getText()!=null){
+                    holder.messageTextView.setText(model.getText());
+                    holder.messageTextView.setVisibility(TextView.VISIBLE);
+                    holder.attachment.setVisibility(ImageView.GONE);
+                    Glide.with(MainActivity.this).load(model.getPhotoUrl()).into(holder.messenger);
+                }else {
+                    String imageurl=model.getImageUrl();
+                    if(imageurl.startsWith("gs://")){
+                        StorageReference storageReference= FirebaseStorage.getInstance()
+                                .getReferenceFromUrl(imageurl);
 
-                                    }else Log.w(TAG,"getting image failed");
-                                }
-                            });
-                        } else {
-                            Glide.with(holder.attachment.getContext()).load(model.getImageUrl())
-                                    .into(holder.attachment);
-                        }
-                        holder.attachment.setVisibility(ImageView.VISIBLE);
-                        holder.messageTextView.setVisibility(TextView.GONE);
+                        storageReference.getDownloadUrl().addOnCompleteListener(new OnCompleteListener<Uri>() {
+                            @Override
+                            public void onComplete(@NonNull Task<Uri> task) {
+                                if(task.isSuccessful()){
+                                    String downloadurl = task.getResult().toString();
+                                    Glide.with(holder.attachment.getContext()).load(downloadurl)
+                                            .into(holder.attachment);
+
+                                }else Log.w(TAG,"getting image failed");
+                            }
+                        });
+                    } else {
+                        Glide.with(holder.attachment.getContext()).load(model.getImageUrl())
+                                .into(holder.attachment);
                     }
-                    holder.titleTextView.setText(model.getName());
-                    if(model.getImageUrl()==null){
-                        holder.messenger
-                                .setImageDrawable(ContextCompat.getDrawable(MainActivity.this,
-                                                R.drawable.ic_account_circle_48px));
-                    }else {
-                        Glide.with(MainActivity.this)
-                                .load(model.getPhotoUrl()).into(holder.messenger);
-                    }
+
+                    holder.attachment.setVisibility(ImageView.VISIBLE);
+                    holder.messageTextView.setVisibility(TextView.GONE);
+                }
+                holder.titleTextView.setText(model.getName());
+                if(model.getImageUrl()==null){
+                    holder.messenger
+                            .setImageDrawable(ContextCompat.getDrawable(MainActivity.this,
+                                    R.drawable.ic_account_circle_48px));
+                }else {
+                    Glide.with(MainActivity.this)
+                            .load(model.getPhotoUrl()).into(holder.messenger);
+                }
                 holder.attachment.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
                         if(model.getImageUrl()!=null) {
                             Intent intent = new Intent(getBaseContext(), PictureExpandedActivity.class);
                             String imgpath = model.getImageUrl();
+                            intent.putExtra("image path", imgpath);
+                            startActivity(intent);
+                        }
+                    }
+                });
+
+                holder.messenger.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        if(model.getPhotoUrl()!=null) {
+                            Intent intent = new Intent(getBaseContext(), PictureExpandedActivity.class);
+                            String imgpath = model.getPhotoUrl();
                             intent.putExtra("image path", imgpath);
                             startActivity(intent);
                         }
@@ -201,29 +196,27 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             }
         });
 
-            messageBox= (EditText) findViewById(R.id.message);
-            messageBox.addTextChangedListener(new TextWatcher() {
-                @Override
-                public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+        messageBox= findViewById(R.id.message);
+        messageBox.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if(s.toString().trim().length()>0){
+                    sendMessageButton.setEnabled(true);
+                }else {
+                    sendMessageButton.setEnabled(false);
                 }
 
-                @Override
-                public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    if(s.toString().trim().length()>0){
-                        sendmessage.setEnabled(true);
-                    }else {
-                        sendmessage.setEnabled(false);
-                    }
+            }
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
 
-                }
-
-                @Override
-                public void afterTextChanged(Editable s) {
-
-                }
-            });
-            sendphoto= (ImageView)findViewById(R.id.sendphoto);
+        sendphoto= findViewById(R.id.sendphoto);
         sendphoto.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -233,19 +226,22 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 startActivityForResult(intent, REQUEST_IMAGE);
             }
         });
-        sendmessage= (ImageButton) findViewById(R.id.sendbutton);
-        sendmessage.setOnClickListener(new View.OnClickListener() {
+
+        sendMessageButton = findViewById(R.id.sendbutton);
+        sendMessageButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-               Message message = new Message(messageBox.getText().toString(),
-                       mUsername,null,mPhotoUrl);
-               reference.push().setValue(message);
-               messageBox.setText("");
+                Message message = new Message(messageBox.getText().toString(),
+                        Username,null, profilePhotoUrl);
+                reference.push().setValue(message);
+                messageBox.setText("");
             }
         });
         recyclerView.setAdapter(mFirebaseAdapter);
 
     }
+
+    //end onCreate
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater inflater = getMenuInflater();
@@ -257,36 +253,16 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()) {
             case R.id.logout:
-                FirebaseAuth.getInstance().signOut();
-                Auth.GoogleSignInApi.signOut(mGoogleApiClient);
-                mFirebaseUser=null;
-                mUsername=null;
-                mPhotoUrl=null;
+                com.google.firebase.auth.FirebaseAuth.getInstance().signOut();
+                Auth.GoogleSignInApi.signOut(GoogleApiClient);
+                FirebaseUser =null;
+                Username =null;
+                profilePhotoUrl =null;
                 startActivity(new Intent(this,LoginActivity.class));
                 finish();
                 return true;
-                default:return super.onOptionsItemSelected(item);
+            default:return super.onOptionsItemSelected(item);
         }
-    }
-
-    @Override
-    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-        Log.d(TAG, "onConnectionFailed:" + connectionResult);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        if(mGoogleApiClient.isConnected())
-        mGoogleApiClient.disconnect();
-        mFirebaseAdapter.stopListening();
-    }
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-         mGoogleApiClient.connect();
-         mFirebaseAdapter.startListening();
     }
 
     @Override
@@ -299,11 +275,10 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 if (data != null) {
                     final Uri uri = data.getData();
                     Log.d(TAG, "Uri: " + uri.toString());
-
-                    Message tempMessage = new Message(null, mUsername, mPhotoUrl,
-                            LOADING_IMAGE_URL);
+                    Message tempMessage = new Message(null, Username, profilePhotoUrl, LOADING_IMAGE_URL);
                     reference.child("messages").push()
                             .setValue(tempMessage, new DatabaseReference.CompletionListener() {
+
                                 @Override
                                 public void onComplete(DatabaseError databaseError,
                                                        DatabaseReference databaseReference) {
@@ -311,7 +286,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                                         String key = databaseReference.getKey();
                                         StorageReference storageReference =
                                                 FirebaseStorage.getInstance()
-                                                        .getReference(mFirebaseUser.getUid())
+                                                        .getReference(FirebaseUser.getUid())
                                                         .child(key)
                                                         .child(uri.getLastPathSegment());
 
@@ -325,6 +300,7 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
             }
         }
     }
+
     private void putImageInStorage(StorageReference storageReference, Uri uri, final String key) {
         storageReference.putFile(uri).addOnCompleteListener(MainActivity.this,
                 new OnCompleteListener<UploadTask.TaskSnapshot>() {
@@ -333,8 +309,8 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                         DatabaseReference reference1= FirebaseDatabase.getInstance().getReference();
                         if (task.isSuccessful()) {
                             Message Message =
-                                    new Message(null, mUsername,task.getResult().getDownloadUrl()
-                                            .toString(),mPhotoUrl);
+                                    new Message(null, Username,task.getResult().getDownloadUrl()
+                                            .toString(), profilePhotoUrl);
                             reference1.child("messages").child(key)
                                     .setValue(Message);
                         } else {
@@ -345,5 +321,40 @@ public class MainActivity extends AppCompatActivity implements  GoogleApiClient.
                 });
     }
 
+    @Override
+    public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
+        Log.d(TAG, "onConnectionFailed:" + connectionResult);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        if(GoogleApiClient.isConnected())
+            GoogleApiClient.disconnect();
+        mFirebaseAdapter.stopListening();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        GoogleApiClient.connect();
+        mFirebaseAdapter.startListening();
+    }
+
+    //
+    public static class MessageViewHolder extends RecyclerView.ViewHolder {
+        TextView messageTextView;
+        TextView titleTextView;
+        ImageView attachment;
+        ImageView messenger;
+
+        public MessageViewHolder(View v) {
+            super(v);
+            messageTextView = itemView.findViewById(R.id.messageTextView);
+            titleTextView = itemView.findViewById(R.id.senderTextview);
+            attachment = itemView.findViewById(R.id.messageattachmentview);
+            messenger= itemView.findViewById(R.id.circularimageview);
+        }
+    }
 
 }
