@@ -6,15 +6,15 @@ public class Message {
     private String id;
     private String text;
     private String name;
-    private String imageUrl;
+    private String attachmentImageUrl;
     private String photoUrl;
     //default constructor
     public Message(){}
 
-    public Message(String text, String name, String imageUrl,String photoUrl) {
+    public Message(String text, String name, String attachmentImageUrl, String photoUrl) {
         this.text = text;
         this.name = name;
-        this.imageUrl = imageUrl;
+        this.attachmentImageUrl = attachmentImageUrl;
         this.photoUrl= photoUrl;
     }
     public String getId() {
@@ -41,12 +41,12 @@ public class Message {
         this.name = name;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
+    public String getAttachmentImageUrl() {
+        return attachmentImageUrl;
     }
 
-    public void setImageUrl(String imageUrl) {
-        this.imageUrl = imageUrl;
+    public void setAttachmentImageUrl(String attachmentImageUrl) {
+        this.attachmentImageUrl = attachmentImageUrl;
     }
 
     public String getPhotoUrl() {
